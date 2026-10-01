@@ -1,6 +1,7 @@
---========================================================
---        ULTRA FPS - FULL GRAY / MAP HIDDEN
---========================================================
+--==================================================
+-- EXTREME FPS / BURIQ MODE
+-- CHARACTER + FLOOR ONLY
+--==================================================
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -8,367 +9,258 @@ local Lighting = game:GetService("Lighting")
 
 local LocalPlayer = Players.LocalPlayer
 
-local GRAY = Color3.fromRGB(55, 55, 55)
+--==================================================
+-- SETTINGS
+--==================================================
 
---========================================================
--- CHARACTER SENDIRI = FULL GRAY
---========================================================
+local DARK_GRAY = Color3.fromRGB(48, 48, 48)
+local FLOOR_Y = 8
 
-local function GrayCharacter(character)
-    if not character then return end
+--==================================================
+-- LIGHTING
+--==================================================
 
-    for _, obj in ipairs(character:GetDescendants()) do
+pcall(function()
+    Lighting.GlobalShadows = false
+    Lighting.Brightness = 0.3
+    Lighting.EnvironmentDiffuseScale = 0
+    Lighting.EnvironmentSpecularScale = 0
+    Lighting.FogEnd = 100000
+end)
 
-        if obj:IsA("BasePart") then
+for _, v in ipairs(Lighting:GetChildren()) do
+    if v:IsA("PostEffect") then
+        v.Enabled = false
+    end
+end
 
-            pcall(function()
-                obj.Color = GRAY
-                obj.Material = Enum.Material.SmoothPlastic
-                obj.CastShadow = false
-                obj.LocalTransparencyModifier = 0
-            end)
+--==================================================
+-- DISABLE EFFECTS
+--==================================================
 
-        elseif obj:IsA("Decal")
-        or obj:IsA("Texture") then
+local function DisableEffect(obj)
 
-            pcall(function()
-                obj.Transparency = 1
-            end)
-
-        elseif obj:IsA("SpecialMesh") then
-
-            pcall(function()
-                obj.TextureId = ""
-            end)
-
-        elseif obj:IsA("ParticleEmitter")
+    if obj:IsA("ParticleEmitter")
         or obj:IsA("Trail")
         or obj:IsA("Beam")
         or obj:IsA("Smoke")
         or obj:IsA("Fire")
         or obj:IsA("Sparkles") then
 
-            pcall(function()
-                obj.Enabled = false
-            end)
+        obj.Enabled = false
 
-        end
+    elseif obj:IsA("Decal") or obj:IsA("Texture") then
+        obj.Transparency = 1
+
+    elseif obj:IsA("SurfaceAppearance") then
+        obj:Destroy()
     end
 end
 
---========================================================
--- PLAYER LAIN = HILANG
---========================================================
+--==================================================
+-- OWN CHARACTER
+--==================================================
 
-local function HidePlayer(character)
-    if not character then return end
-    if character == LocalPlayer.Character then return end
+local function MakeCharacterBuriq(character)
+
+    if not character then
+        return
+    end
 
     for _, obj in ipairs(character:GetDescendants()) do
 
         if obj:IsA("BasePart") then
 
-            pcall(function()
-                obj.LocalTransparencyModifier = 1
-            end)
+            obj.Color = DARK_GRAY
+            obj.Material = Enum.Material.Slate
+            obj.CastShadow = false
+            obj.Reflectance = 0
 
         elseif obj:IsA("Decal")
-        or obj:IsA("Texture") then
+            or obj:IsA("Texture") then
 
-            pcall(function()
-                obj.Transparency = 1
-            end)
+            obj.Transparency = 1
 
+        elseif obj:IsA("SurfaceAppearance") then
+
+            obj:Destroy()
+
+        elseif obj:IsA("ParticleEmitter")
+            or obj:IsA("Trail")
+            or obj:IsA("Beam")
+            or obj:IsA("Smoke")
+            or obj:IsA("Fire")
+            or obj:IsA("Sparkles") then
+
+            obj.Enabled = false
         end
     end
 end
 
---========================================================
--- DETEKSI KARAKTER / NPC
---========================================================
+local function CharacterAdded(character)
 
-local function IsCharacterPart(obj)
+    task.wait(0.5)
+    MakeCharacterBuriq(character)
 
-    local model = obj:FindFirstAncestorOfClass("Model")
+    character.DescendantAdded:Connect(function(obj)
 
-    if model and model:FindFirstChildOfClass("Humanoid") then
-        return true, model
-    end
+        if obj:IsA("BasePart") then
+            obj.Color = DARK_GRAY
+            obj.Material = Enum.Material.Slate
+            obj.CastShadow = false
+            obj.Reflectance = 0
 
-    return false, nil
-end
-
---========================================================
--- DETEKSI LANTAI
---========================================================
-
-local function IsGround(part)
-
-    if not part:IsA("BasePart") then
-        return false
-    end
-
-    local s = part.Size
-
-    -- Lantai biasanya lebar dan relatif tipis
-    if s.Y <= 8 and (s.X >= 80 or s.Z >= 80) then
-        return true
-    end
-
-    return false
-end
-
---========================================================
--- SEMBUNYIKAN MAP
---========================================================
-
-local function HideMapPart(part)
-
-    if not part:IsA("BasePart") then
-        return
-    end
-
-    -- Jangan sentuh karakter sendiri
-    if LocalPlayer.Character
-    and part:IsDescendantOf(LocalPlayer.Character) then
-        return
-    end
-
-    -- Jangan sentuh player/NPC
-    local isChar = IsCharacterPart(part)
-
-    if isChar then
-        return
-    end
-
-    -- Lantai tetap ada
-    if IsGround(part) then
-
-        pcall(function()
-            part.Color = GRAY
-            part.Material = Enum.Material.SmoothPlastic
-            part.CastShadow = false
-            part.LocalTransparencyModifier = 0
-        end)
-
-        return
-    end
-
-    -- SEMUA MAP SELAIN LANTAI = HILANG
-    pcall(function()
-        part.LocalTransparencyModifier = 1
+        else
+            DisableEffect(obj)
+        end
     end)
 end
 
---========================================================
--- MATIKAN EFFECT
---========================================================
+if LocalPlayer.Character then
+    task.spawn(CharacterAdded, LocalPlayer.Character)
+end
 
-local function DisableEffect(obj)
+LocalPlayer.CharacterAdded:Connect(CharacterAdded)
 
-    if obj:IsA("ParticleEmitter")
-    or obj:IsA("Trail")
-    or obj:IsA("Beam")
-    or obj:IsA("Smoke")
-    or obj:IsA("Fire")
-    or obj:IsA("Sparkles") then
+--==================================================
+-- HIDE OTHER PLAYERS
+--==================================================
 
-        pcall(function()
-            obj.Enabled = false
-        end)
+local function HideOtherCharacter(character)
 
+    if not character then
+        return
+    end
+
+    for _, obj in ipairs(character:GetDescendants()) do
+
+        if obj:IsA("BasePart") then
+            obj.LocalTransparencyModifier = 1
+            obj.CastShadow = false
+
+        else
+            DisableEffect(obj)
+        end
     end
 end
 
---========================================================
--- PROSES MAP SEKALI
---========================================================
-
-task.spawn(function()
-
-    local objects = Workspace:GetDescendants()
-    local counter = 0
-
-    for _, obj in ipairs(objects) do
-
-        if obj:IsA("BasePart") then
-
-            local isChar, model = IsCharacterPart(obj)
-
-            if isChar then
-
-                if model == LocalPlayer.Character then
-                    GrayCharacter(model)
-                else
-                    HidePlayer(model)
-                end
-
-            else
-
-                HideMapPart(obj)
-
-            end
-
-        else
-
-            DisableEffect(obj)
-
-        end
-
-        counter += 1
-
-        -- Mencegah freeze ketika pertama execute
-        if counter >= 250 then
-            counter = 0
-            task.wait()
-        end
-    end
-
-    -- Pastikan karakter sendiri FULL GRAY
-    GrayCharacter(LocalPlayer.Character)
-
-end)
-
---========================================================
--- KARAKTER SENDIRI SPAWN ULANG
---========================================================
-
-LocalPlayer.CharacterAdded:Connect(function(character)
-
-    task.wait(0.5)
-
-    GrayCharacter(character)
-
-end)
-
---========================================================
--- PLAYER BARU
---========================================================
-
-Players.PlayerAdded:Connect(function(player)
+local function SetupPlayer(player)
 
     if player == LocalPlayer then
         return
     end
 
+    if player.Character then
+        task.spawn(HideOtherCharacter, player.Character)
+    end
+
     player.CharacterAdded:Connect(function(character)
-
-        task.wait(0.3)
-
-        HidePlayer(character)
-
+        task.wait(0.2)
+        HideOtherCharacter(character)
     end)
+end
 
+for _, player in ipairs(Players:GetPlayers()) do
+    SetupPlayer(player)
+end
+
+Players.PlayerAdded:Connect(SetupPlayer)
+
+--==================================================
+-- MAP
+--==================================================
+
+local function OptimizeMapPart(obj)
+
+    if not obj:IsA("BasePart") then
+        return
+    end
+
+    -- Jangan sentuh character
+    local model = obj:FindFirstAncestorOfClass("Model")
+
+    if model and model:FindFirstChildOfClass("Humanoid") then
+        return
+    end
+
+    -- FLOOR
+    if obj.Position.Y <= FLOOR_Y then
+
+        obj.LocalTransparencyModifier = 0
+        obj.Color = DARK_GRAY
+        obj.Material = Enum.Material.Slate
+        obj.CastShadow = false
+        obj.Reflectance = 0
+
+    else
+
+        -- SEMUA BANGUNAN / OBJECT MAP HILANG
+        obj.LocalTransparencyModifier = 1
+        obj.CastShadow = false
+    end
+end
+
+--==================================================
+-- INITIAL MAP SCAN
+--==================================================
+
+task.spawn(function()
+
+    local objects = Workspace:GetDescendants()
+    local total = #objects
+
+    local index = 1
+
+    while index <= total do
+
+        local endIndex = math.min(index + 100, total)
+
+        while index <= endIndex do
+            OptimizeMapPart(objects[index])
+            DisableEffect(objects[index])
+
+            index += 1
+        end
+
+        task.wait()
+    end
 end)
 
---========================================================
--- OBJECT BARU DARI SERVER
---========================================================
+--==================================================
+-- NEW OBJECTS
+--==================================================
 
 Workspace.DescendantAdded:Connect(function(obj)
 
-    task.defer(function()
+    if obj:IsA("BasePart") then
 
-        -- Effect baru
-        DisableEffect(obj)
+        task.defer(function()
+            OptimizeMapPart(obj)
+        end)
 
-        if not obj:IsA("BasePart") then
-            return
-        end
+    else
 
-        -- Karakter sendiri
-        if LocalPlayer.Character
-        and obj:IsDescendantOf(LocalPlayer.Character) then
-
-            GrayCharacter(LocalPlayer.Character)
-            return
-        end
-
-        -- Player/NPC
-        local isChar, model = IsCharacterPart(obj)
-
-        if isChar then
-
-            if model == LocalPlayer.Character then
-                GrayCharacter(model)
-            else
-                HidePlayer(model)
-            end
-
-            return
-        end
-
-        -- MAP BARU
-        HideMapPart(obj)
-
-    end)
-
-end)
-
---========================================================
--- TERRAIN = GRAY
---========================================================
-
-pcall(function()
-
-    local Terrain = Workspace.Terrain
-
-    Terrain:SetMaterialColor(
-        Enum.Material.Grass,
-        GRAY
-    )
-
-    Terrain:SetMaterialColor(
-        Enum.Material.LeafyGrass,
-        GRAY
-    )
-
-    Terrain:SetMaterialColor(
-        Enum.Material.Ground,
-        GRAY
-    )
-
-    Terrain:SetMaterialColor(
-        Enum.Material.Mud,
-        GRAY
-    )
-
-end)
-
---========================================================
--- LIGHTING BOOST
---========================================================
-
-pcall(function()
-
-    Lighting.GlobalShadows = false
-
-    for _, effect in ipairs(Lighting:GetChildren()) do
-
-        if effect:IsA("BloomEffect")
-        or effect:IsA("BlurEffect")
-        or effect:IsA("DepthOfFieldEffect")
-        or effect:IsA("SunRaysEffect") then
-
-            effect.Enabled = false
-
-        end
+        task.defer(function()
+            DisableEffect(obj)
+        end)
     end
-
 end)
 
---========================================================
--- DONE
---========================================================
+--==================================================
+-- TERRAIN
+--==================================================
 
-print("======================================")
-print("       ULTRA FPS MODE AKTIF")
-print("======================================")
-print("BUILDING  : HIDDEN")
-print("MAP       : HIDDEN")
-print("GROUND    : GRAY")
-print("CHARACTER : FULL GRAY")
-print("PLAYERS   : HIDDEN")
-print("EFFECTS   : OFF")
-print("SHADOW    : OFF")
-print("======================================")
+local Terrain = Workspace:FindFirstChildOfClass("Terrain")
+
+if Terrain then
+    pcall(function()
+        Terrain.Decoration = false
+        Terrain.WaterReflectance = 0
+        Terrain.WaterTransparency = 1
+        Terrain.WaterWaveSize = 0
+        Terrain.WaterWaveSpeed = 0
+        Terrain.GrassLength = 0
+    end)
+end
+
+print("EXTREME BURIQ FPS MODE LOADED")
